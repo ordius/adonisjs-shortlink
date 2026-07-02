@@ -1,5 +1,5 @@
 {
-  "name": "@mixxtor/adonisjs-shortlink",
+  "name": "@ordius/adonisjs-shortlink",
   "version": "1.1.2",
   "description": "A standalone URL shortener service for AdonisJS v6",
   "main": "build/index.js",
