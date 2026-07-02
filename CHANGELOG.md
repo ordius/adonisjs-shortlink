@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 
 
-## [1.1.2](///compare/v1.1.1...v1.1.2) (2025-12-16)
+## [1.1.2](https://github.com/mixxtor/adonisjs-shortlink/compare/v1.1.1...v1.1.2) (2025-12-16)
 
 ### 🐛 Bug Fixes
 
@@ -15,7 +15,7 @@ All notable changes to this project will be documented in this file.
 * update dependencies cac95bc
 * update formatting and improve code clarity across multiple files a823f23
 
-## <small>1.1.1 (2025-10-27)</small>
+## [1.1.1](https://github.com/mixxtor/adonisjs-shortlink/compare/v1.1.0...v1.1.1) (2025-10-27)
 
 - fix: update baseUrl handling in ShortlinkService to ensure proper prefix formatting ([182c5ec](https://github.com/mixxtor/adonisjs-shortlink/commit/182c5ec))
 - fix: update updateOrCreate method to use slug for shortlink identification and remove CreateShortlin ([3eeed30](https://github.com/mixxtor/adonisjs-shortlink/commit/3eeed30))
