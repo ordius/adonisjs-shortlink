@@ -50,7 +50,7 @@
   "devDependencies": {
     "@adonisjs/assembler": "^8.4.0",
     "@adonisjs/core": "^6.19.1",
-    "@adonisjs/lucid": "^21.8.1",
+    "@adonisjs/lucid": "^22.4.2",
     "@adonisjs/prettier-config": "^1.4.5",
     "@adonisjs/tsconfig": "^1.4.1",
     "@release-it/conventional-changelog": "^11.0.1",
@@ -68,7 +68,7 @@
   },
   "peerDependencies": {
     "@adonisjs/core": "^6.19.1",
-    "@adonisjs/lucid": "^21.8.1"
+    "@adonisjs/lucid": "^22.4.2"
   },
   "dependencies": {
     "luxon": "^3.7.2"
