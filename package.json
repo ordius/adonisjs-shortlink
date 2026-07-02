@@ -53,7 +53,7 @@
     "@adonisjs/lucid": "^21.8.1",
     "@adonisjs/prettier-config": "^1.4.5",
     "@adonisjs/tsconfig": "^1.4.1",
-    "@release-it/conventional-changelog": "^10.0.3",
+    "@release-it/conventional-changelog": "^11.0.1",
     "@swc/core": "^1.15.5",
     "@types/node": "^25.0.2",
     "c8": "^10.1.3",
