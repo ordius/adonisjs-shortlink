@@ -8,7 +8,7 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue)
 ![AdonisJS](https://img.shields.io/badge/AdonisJS-6.x-purple)
 
-A powerful, type-safe URL shortener service for AdonisJS v6 with configurable models, advanced click tracking, and production-ready features.
+A powerful, type-safe URL shortener service for AdonisJS v7 with configurable models, advanced click tracking, and production-ready features.
 
 ## ✨ Features
 
@@ -740,6 +740,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 - 📚 [Documentation](https://github.com/mixxtor/adonisjs-shortlink)
 - 🐛 [Issues](https://github.com/mixxtor/adonisjs-shortlink/issues)
+
 <!-- - 💬 [Discussions](https://github.com/mixxtor/adonisjs-shortlink/discussions) -->
 
 ---

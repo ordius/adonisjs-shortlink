@@ -1,10 +1,11 @@
-import { fileURLToPath } from 'node:url'
-import { dirname, join } from 'node:path'
+/*
+|--------------------------------------------------------------------------
+| Stubs root
+|--------------------------------------------------------------------------
+|
+| Path to the root directory where stubs are located. This will be used
+| during the configure hook to copy the stubs to the user's application.
+|
+*/
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = dirname(__filename)
-
-/**
- * Path to the stubs directory
- */
-export const stubsRoot = join(__dirname)
+export const stubsRoot = import.meta.dirname
