@@ -1,36 +1,29 @@
 {{{
   exports({ to: app.startPath(fileName) })
 }}}
-/**
- * Shortlink routes
- *
- * Include this file in your main routes file to enable shortlink functionality
- *
- * Usage in start/routes.ts:
- *   import './shortlinks.js'
- */
+/*
+|--------------------------------------------------------------------------
+| Shortlink redirect routes
+|--------------------------------------------------------------------------
+|
+| Registered automatically as a preload file (see the "#start/shortlinks"
+| entry added to adonisrc.ts by the configure hook) — one GET route per
+| configured domain.
+|
+| Management endpoints (create/update/delete) are your app's job — add
+| them wherever they belong, behind auth.
+|
+*/
 
 import router from '@adonisjs/core/services/router'
-import shortlinkConfig from '#config/shortlink'
+import shortlink from '@ordius/adonisjs-shortlink/services/main'
 
-const ShortlinkController = () => import('#controllers/shortlink_controller')
+const ShortlinksController = () => import('#controllers/shortlinks_controller')
 
-/**
-  * Shortlink redirect route
-  */
-router.get('/:slug', [ShortlinkController, 'redirect'])
-  .as('shortlink.redirect')
-  .prefix(shortlinkConfig.prefix ?? '')
-  .domain(shortlinkConfig.domain)
-  .middleware([]) // add your middleware/throttler here
-
-/**
-  * API routes for shortlink management
-  */
-router.group(() => {
-  router.get('/shortlinks/:slug', [ShortlinkController, 'show']).as('shortlink.show')
-  router.post('/shortlinks', [ShortlinkController, 'store']).as('shortlink.store')
-  router.delete('/shortlinks/:slug', [ShortlinkController, 'destroy']).as('shortlink.destroy')
-})
-  .prefix('api')
-  .middleware([]) // add your middleware/throttler here
+for (const domain of shortlink.config.domains) {
+  router
+    .get(`${shortlink.config.prefix}/:slug`, [ShortlinksController, 'redirect'])
+    .as(`shortlinks.redirect.${domain}`)
+    .domain(domain)
+    .middleware([]) // add your own throttling/middleware here
+}

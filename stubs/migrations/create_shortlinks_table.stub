@@ -3,21 +3,22 @@
   exports({ to: app.migrationsPath(migrationFileName) })
 }}}
 import { BaseSchema } from '@adonisjs/lucid/schema'
-import Shortlink from '#models/shortlink'
 
 export default class extends BaseSchema {
-  protected tableName = Shortlink.table
+  protected tableName = 'shortlinks'
 
   async up() {
     this.schema.createTable(this.tableName, (table) => {
-      table.increments('id').primary()
-      table.string('slug', 255).notNullable().unique().index()
+      table.increments('id')
+      table.string('domain', 255).notNullable()
+      table.string('slug', 255).notNullable()
+      table.unique(['domain', 'slug'])
       table.text('original_url').notNullable()
-      table.integer('clicks').defaultTo(0).notNullable()
-      table.jsonb('metadata').nullable()
+      table.integer('clicks').unsigned().notNullable().defaultTo(0)
+      table.json('metadata').nullable()
 
-      table.timestamp('created_at', { useTz: true }).notNullable().defaultTo(this.now())
-      table.timestamp('updated_at', { useTz: true }).notNullable().defaultTo(this.now())
+      table.timestamp('created_at', { useTz: true })
+      table.timestamp('updated_at', { useTz: true })
     })
   }
 

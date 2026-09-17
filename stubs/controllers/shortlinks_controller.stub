@@ -6,122 +6,31 @@
   exports({ to: app.httpControllersPath(entity.path, controllerFileName) })
 }}}
 import type { HttpContext } from '@adonisjs/core/http'
-import shortlinkService from '@mixxtor/adonisjs-shortlink/services/main'
+import shortlink from '@ordius/adonisjs-shortlink/services/main'
 
 /**
- * Shortlink controller
- * 
- * Handles shortlink redirects and optional API endpoints
+ * Redirects short URLs to their original destination.
+ *
+ * Management endpoints (create/update/delete) are intentionally not
+ * generated here — add them to your own app, behind auth.
  */
 export default class {{ controllerName }} {
-  /**
-   * Redirect to original URL based on slug
-   */
-  async redirect({ params, response }: HttpContext) {
-    const { slug } = params
-
-    const shortlink = await shortlinkService.getBySlug(slug)
-
-    if (!shortlink) {
-      return response.status(404).send({
-        error: 'Shortlink not found',
-        message: {{{ '`The shortlink "${slug}" does not exist`' }}},
-      })
-    }
-
-    const shortlinkConfig = shortlinkService.getConfig()
-
-    // Increment click count in background (don't wait for it)
-    if (shortlinkConfig.trackClicks) {
-      // Use type assertion or safe property access
-      if (typeof shortlink.incrementClicks === 'function') {
-        shortlink.incrementClicks().catch((error: Error) => {
-          console.error('Failed to increment shortlink clicks:', error)
-        })
-      }
-    }
-
-    // Redirect to original URL
-    return response.redirect(shortlink.original_url, true, shortlinkConfig.redirectStatusCode)
-  }
-
-  /**
-   * Get shortlink statistics (optional, for admin purposes)
-   */
-  async show({ params, response }: HttpContext) {
-    const { slug } = params
-
-    const shortlink = await shortlinkService.getBySlug(slug)
-
-    if (!shortlink) {
-      return response.status(404).send({
-        error: 'Shortlink not found',
-        message: {{{ '`The shortlink "${slug}" does not exist`' }}},
-      })
-    }
-
-    return response.json({
-      slug: shortlink.slug,
-      original_url: shortlink.original_url,
-      clicks: shortlink.clicks,
-      created_at: shortlink.created_at,
-      metadata: shortlink.metadata,
+  async redirect({ params, request, response, logger }: HttpContext) {
+    const link = await shortlink.findBySlug(params.slug, {
+      domain: request.hostname() ?? undefined,
     })
-  }
 
-  /**
-   * Create a new shortlink (optional, for admin purposes)
-   */
-  async store({ request, response }: HttpContext) {
-    const {
-      original_url,
-      custom_slug: slug,
-      metadata,
-    } = request.only(['original_url', 'custom_slug', 'metadata'])
+    if (!link) {
+      return response.notFound({ error: 'Shortlink not found' })
+    }
 
-    if (!original_url) {
-      return response.status(400).send({
-        error: 'Bad Request',
-        message: 'original_url is required',
+    if (shortlink.config.trackClicks) {
+      // Fire-and-forget: a click-tracking failure must not block the redirect.
+      shortlink.recordClick(link).catch((error: Error) => {
+        logger.error({ err: error }, 'Failed to record shortlink click')
       })
     }
 
-    try {
-      const shortlink = await shortlinkService.create(original_url, { slug, metadata })
-      const shortUrl = shortlinkService.getShortUrl(shortlink.slug)
-
-      return response.status(201).json({
-        id: shortlink.id,
-        slug: shortlink.slug,
-        original_url: shortlink.original_url,
-        short_url: shortUrl,
-        clicks: shortlink.clicks,
-        created_at: shortlink.created_at,
-        metadata: shortlink.metadata,
-      })
-    } catch (error) {
-      return response.status(400).send({
-        error: 'Bad Request',
-        message: error.message,
-      })
-    }
-  }
-
-  /**
-   * Delete a shortlink (optional, for admin purposes)
-   */
-  async destroy({ params, response }: HttpContext) {
-    const { slug } = params
-
-    const deleted = await shortlinkService.deleteBySlug(slug)
-
-    if (!deleted) {
-      return response.status(404).send({
-        error: 'Shortlink not found',
-        message: {{{ '`The shortlink "${slug}" does not exist`' }}},
-      })
-    }
-
-    return response.status(204).send(null)
+    return response.redirect().status(shortlink.config.redirectStatusCode).toPath(link.originalUrl)
   }
 }
