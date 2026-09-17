@@ -41,6 +41,16 @@ test.group('defineConfig', () => {
     assert.equal(config!.domain, 'short.example.com')
   })
 
+  test('drops the port from a configured domain', async ({ assert }) => {
+    const provider = defineConfig({
+      model: async () => ({ default: FakeModel }),
+      domain: 'localhost:3333',
+    })
+
+    const config = await configProvider.resolve(app, provider)
+    assert.equal(config!.domain, 'localhost')
+  })
+
   test('dedupes domains and keeps the primary one first', async ({ assert }) => {
     const provider = defineConfig({
       model: async () => ({ default: FakeModel }),

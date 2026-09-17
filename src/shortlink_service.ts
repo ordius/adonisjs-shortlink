@@ -50,7 +50,8 @@ export default class ShortlinkService<Model extends ShortlinkModel = ResolvedMod
 
   /**
    * Normalizes a bare hostname or full URL down to a hostname, so
-   * comparisons against `config.domains` are consistent.
+   * comparisons against `config.domains` are consistent. Ports are dropped:
+   * Adonis matches `.domain()` routes and `request.hostname()` without them.
    */
   private normalizeHost(host: string): string {
     const trimmed = host.trim()
@@ -58,7 +59,7 @@ export default class ShortlinkService<Model extends ShortlinkModel = ResolvedMod
 
     try {
       const url = trimmed.includes('://') ? new URL(trimmed) : new URL(`https://${trimmed}`)
-      return url.host
+      return url.hostname
     } catch {
       return trimmed.toLowerCase()
     }
@@ -129,7 +130,7 @@ export default class ShortlinkService<Model extends ShortlinkModel = ResolvedMod
       return null
     }
 
-    if (!this.servesDomain(url.host)) return null
+    if (!this.servesDomain(url.hostname)) return null
 
     const prefix = this.config.prefix
     let pathname = url.pathname
@@ -142,7 +143,7 @@ export default class ShortlinkService<Model extends ShortlinkModel = ResolvedMod
     const slug = pathname.replace(/^\/+/, '').replace(/\/+$/, '')
     if (!slug) return null
 
-    return { domain: url.host, slug }
+    return { domain: url.hostname, slug }
   }
 
   // ---------------------------------------------------------------------
@@ -216,7 +217,7 @@ export default class ShortlinkService<Model extends ShortlinkModel = ResolvedMod
     if (!this.servesDomain(domain)) return null
 
     return this.config.model.findBy(
-      { domain, originalUrl },
+      { domain, originalUrl: originalUrl.trim() },
       options.client ? { client: options.client } : undefined
     ) as Promise<InstanceType<Model> | null>
   }
@@ -263,14 +264,10 @@ export default class ShortlinkService<Model extends ShortlinkModel = ResolvedMod
       }
     }
 
-    // A caller-provided transaction can't be retried in: a failed insert
-    // aborts it (postgres), so we only retry generated-slug collisions
-    // when we own the transaction.
-    const maxAttempts = options.client ? 1 : this.config.slug.maxAttempts
-
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    for (let attempt = 0; attempt < this.config.slug.maxAttempts; attempt++) {
       const slug = this.generateSlug()
 
+      // A collision caught here costs nothing, so it is retried in any case.
       const existing = await this.config.model.findBy({ domain, slug }, clientOptions)
       if (existing) continue
 
@@ -280,8 +277,10 @@ export default class ShortlinkService<Model extends ShortlinkModel = ResolvedMod
           clientOptions
         )) as InstanceType<Model>
       } catch (error) {
-        if (isUniqueViolation(error)) continue
-        throw error
+        if (!isUniqueViolation(error)) throw error
+        // A failed INSERT aborts a caller-provided postgres transaction, so the
+        // race can only be retried when the service owns the query.
+        if (options.client) throw new E_SLUG_GENERATION_FAILED(undefined, { cause: error })
       }
     }
 
@@ -319,11 +318,11 @@ export default class ShortlinkService<Model extends ShortlinkModel = ResolvedMod
     if (changes.slug !== undefined && changes.slug !== shortlink.slug) {
       this.assertValidSlug(changes.slug)
 
-      const existing = await this.config.model.findBy({
-        domain: shortlink.domain,
-        slug: changes.slug,
-      })
-      if (existing && existing.id !== shortlink.id) {
+      const existing = await this.config.model.findBy(
+        { domain: shortlink.domain, slug: changes.slug },
+        shortlink.$trx ? { client: shortlink.$trx } : undefined
+      )
+      if (existing && existing.$primaryKeyValue !== shortlink.$primaryKeyValue) {
         throw new E_SLUG_TAKEN([changes.slug])
       }
 
@@ -365,7 +364,8 @@ export default class ShortlinkService<Model extends ShortlinkModel = ResolvedMod
    * the way `clicks += 1; save()` would.
    */
   async recordClick(shortlink: InstanceType<Model> | ShortlinkRow['id'], count = 1): Promise<void> {
-    const id = typeof shortlink === 'object' ? shortlink.id : shortlink
-    await this.config.model.query().where('id', id).increment('clicks', count)
+    const model = this.config.model
+    const id = typeof shortlink === 'object' ? shortlink.$primaryKeyValue : shortlink
+    await model.query().where(model.primaryKey, id!).increment('clicks', count)
   }
 }

@@ -232,6 +232,30 @@ test.group('ShortlinkService (integration)', (group) => {
     assert.equal(first.id, second.id)
   })
 
+  test('firstOrCreate matches an untrimmed URL against the stored one', async ({ assert }) => {
+    const service = new ShortlinkService(makeConfig())
+    const first = await service.firstOrCreate('https://example.com/a')
+    const second = await service.firstOrCreate('  https://example.com/a  ')
+
+    assert.equal(second.id, first.id)
+  })
+
+  test('a generated slug that collides is retried inside a caller transaction', async ({
+    assert,
+  }) => {
+    const service = new ShortlinkService(makeConfig())
+    await service.create('https://example.com/a', { slug: 'taken123' })
+
+    const slugs = ['taken123', 'fresh456']
+    service.generateSlug = () => slugs.shift()!
+
+    const link = await Shortlink.transaction((trx) =>
+      service.create('https://example.com/b', { client: trx })
+    )
+
+    assert.equal(link.slug, 'fresh456')
+  })
+
   test('update throws E_SLUG_TAKEN when the new slug is already used on the domain', async ({
     assert,
   }) => {

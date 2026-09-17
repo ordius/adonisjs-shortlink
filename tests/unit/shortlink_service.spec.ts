@@ -37,6 +37,16 @@ test.group('ShortlinkService (pure)', () => {
     assert.isFalse(service.servesDomain('unknown.example.com'))
   })
 
+  test('servesDomain and parse ignore the port, like Adonis domain routing', ({ assert }) => {
+    const service = new ShortlinkService(makeConfig())
+
+    assert.isTrue(service.servesDomain('short.example.com:3333'))
+    assert.deepEqual(service.parse('http://short.example.com:3333/abc123'), {
+      domain: 'short.example.com',
+      slug: 'abc123',
+    })
+  })
+
   test('url builds a full URL for the primary domain', ({ assert }) => {
     const service = new ShortlinkService(makeConfig({ prefix: '/s' }))
     assert.equal(service.url('abc123'), 'https://short.example.com/s/abc123')

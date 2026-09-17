@@ -13,7 +13,8 @@ const DEFAULT_SLUG_PATTERN = /^[A-Za-z0-9_-]{1,255}$/
 
 /**
  * Normalizes a bare hostname or a full URL down to its hostname, so
- * lookups behave the same regardless of how the app configured it.
+ * lookups behave the same regardless of how the app configured it. Ports
+ * are dropped, matching how Adonis compares `.domain()` routes.
  */
 function normalizeDomain(input: string): string {
   const trimmed = input.trim()
@@ -24,7 +25,7 @@ function normalizeDomain(input: string): string {
 
   try {
     const url = trimmed.includes('://') ? new URL(trimmed) : new URL(`https://${trimmed}`)
-    return url.host
+    return url.hostname
   } catch {
     throw new RuntimeException(
       `Invalid "config/shortlink.ts" file. "domain" value "${input}" is not a valid hostname`
