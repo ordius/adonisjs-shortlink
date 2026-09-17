@@ -7,6 +7,6 @@
     "declarationMap": true,
     "sourceMap": true
   },
-  "include": ["src/**/*", "providers/**/*", "index.ts"],
+  "include": ["index.ts", "configure.ts", "src/**/*", "providers/**/*", "stubs/main.ts"],
   "exclude": ["node_modules", "build", "tests"]
 }

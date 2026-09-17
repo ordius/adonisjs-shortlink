@@ -1,7 +1,7 @@
 {
   "name": "@ordius/adonisjs-shortlink",
   "version": "1.1.2",
-  "description": "A standalone URL shortener service for AdonisJS v6",
+  "description": "A standalone URL shortener service for AdonisJS v7",
   "main": "build/index.js",
   "type": "module",
   "files": [
@@ -13,8 +13,7 @@
     ".": "./build/index.js",
     "./types": "./build/src/types.js",
     "./services/main": "./build/src/services/main.js",
-    "./shortlink_provider": "./build/providers/shortlink_provider.js",
-    "./configure": "./build/configure.js"
+    "./shortlink_provider": "./build/providers/shortlink_provider.js"
   },
   "scripts": {
     "clean": "del-cli build",
@@ -50,28 +49,30 @@
   "devDependencies": {
     "@adonisjs/assembler": "^8.4.0",
     "@adonisjs/core": "^7.3.4",
+    "@adonisjs/eslint-config": "^3.1.0",
     "@adonisjs/lucid": "^22.4.2",
     "@adonisjs/prettier-config": "^1.5.0",
     "@adonisjs/tsconfig": "^2.0.0",
+    "@japa/assert": "^4.0.1",
+    "@japa/runner": "^4.4.0",
     "@release-it/conventional-changelog": "^11.0.1",
     "@swc/core": "^1.15.43",
+    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^26.1.0",
+    "better-sqlite3": "^12.4.1",
     "c8": "^11.0.0",
     "copyfiles": "^2.4.1",
     "del-cli": "^7.0.0",
     "eslint": "^10.6.0",
+    "luxon": "^3.7.2",
     "prettier": "^3.9.4",
     "release-it": "^20.2.1",
     "ts-node": "^10.9.2",
-    "typescript": "^6.0.3",
-    "typescript-eslint": "^8.62.1"
+    "typescript": "^6.0.3"
   },
   "peerDependencies": {
     "@adonisjs/core": "^7.3.4",
     "@adonisjs/lucid": "^22.4.2"
-  },
-  "dependencies": {
-    "luxon": "^3.7.2"
   },
   "publishConfig": {
     "access": "public",
