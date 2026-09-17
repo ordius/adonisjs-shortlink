@@ -1,40 +1,39 @@
+import { configProvider } from '@adonisjs/core'
+import { RuntimeException } from '@adonisjs/core/exceptions'
 import type { ApplicationService } from '@adonisjs/core/types'
-import ShortlinkService from '../src/services/shortlink_service.js'
-import type { ShortlinkConfig, ShortlinkModel } from '../src/types.js'
+
+import ShortlinkService from '../src/shortlink_service.js'
+import type { ResolvedShortlinkConfig } from '../src/types.js'
+
+declare module '@adonisjs/core/types' {
+  interface ContainerBindings {
+    shortlink: ShortlinkService
+  }
+}
 
 /**
- * Shortlink provider to register the service with the IoC container
+ * Registers the shortlink service as a container singleton, resolving
+ * `config/shortlink.ts` (a config provider) on first use.
  */
 export default class ShortlinkProvider {
   constructor(protected app: ApplicationService) {}
 
-  /**
-   * Register bindings to the container
-   */
   register() {
-    this.app.container.singleton('shortlink', async () => {
-      const configProvider = this.app.config.get<ShortlinkConfig<ShortlinkModel>>('shortlink')
-      return new ShortlinkService(configProvider)
+    this.app.container.singleton(ShortlinkService, async () => {
+      const config = await configProvider.resolve<ResolvedShortlinkConfig<any>>(
+        this.app,
+        this.app.config.get('shortlink')
+      )
+
+      if (!config) {
+        throw new RuntimeException(
+          'Invalid "config/shortlink.ts" file. Make sure you are using the "defineConfig" method'
+        )
+      }
+
+      return new ShortlinkService(config)
     })
+
+    this.app.container.alias('shortlink', ShortlinkService)
   }
-
-  /**
-   * The container bindings have booted
-   */
-  async boot() {}
-
-  /**
-   * The application has been booted
-   */
-  async start() {}
-
-  /**
-   * The process has been started
-   */
-  async ready() {}
-
-  /**
-   * Preparing to shutdown the app
-   */
-  async shutdown() {}
 }
