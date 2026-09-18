@@ -4,16 +4,56 @@ All notable changes to this project will be documented in this file.
 
 
 
+## [2.0.0](https://github.com/mixxtor/adonisjs-shortlink/compare/v1.1.2...v2.0.0) (2026-09-18)
+
+### ⚠ BREAKING CHANGES
+
+* rewrite shortlink service for AdonisJS 7
+* update stubs and configure hook for the v2 contract
+
+### ✨ Features
+
+* rewrite shortlink service for AdonisJS 7 ([39c00eb](https://github.com/mixxtor/adonisjs-shortlink/commit/39c00ebc64b2e1833175a5cb6dd0f7b2a3e052c5))
+* update stubs and configure hook for the v2 contract ([051690c](https://github.com/mixxtor/adonisjs-shortlink/commit/051690c32fa2282941f0264a7b9b56554423bca4))
+
+### 🐛 Bug Fixes
+
+* compare domains without port, retry slug collisions inside transactions ([9698788](https://github.com/mixxtor/adonisjs-shortlink/commit/9698788a73097b7f2831eda2e8612d13519bd875))
+
+### 📚 Documentation
+
+* rewrite README for v2 ([bd34f02](https://github.com/mixxtor/adonisjs-shortlink/commit/bd34f02288a3c568c9b8aa257424f178884aea4e))
+
+### 🧪 Tests
+
+* add unit and integration coverage for the v2 service ([ad93f06](https://github.com/mixxtor/adonisjs-shortlink/commit/ad93f06cb65f701bd3162d22867dbdac22259e36))
+
+### 🔧 Maintenance
+
+* add repository, homepage, bugs and engines metadata ([169a11e](https://github.com/mixxtor/adonisjs-shortlink/commit/169a11e3b4a4760d4c669093e0c0c600fdd5245e))
+* **deps-dev:** bump @adonisjs/assembler from 7.8.2 to 8.4.0 ([ce81d9b](https://github.com/mixxtor/adonisjs-shortlink/commit/ce81d9b08109a558fd6d08f42afcf01fbdd3e100))
+* **deps-dev:** bump @adonisjs/core from 6.21.0 to 7.3.4 ([ec9d1f6](https://github.com/mixxtor/adonisjs-shortlink/commit/ec9d1f6333e5d75f668176dec79bdbbae1b6d280))
+* **deps-dev:** bump @adonisjs/lucid from 21.8.2 to 22.4.2 ([31fb2a7](https://github.com/mixxtor/adonisjs-shortlink/commit/31fb2a7d6b6e78b2198f7e855ced72921770f117))
+* **deps-dev:** bump @release-it/conventional-changelog ([2e5c9fa](https://github.com/mixxtor/adonisjs-shortlink/commit/2e5c9fa1df90c91d9119457a3520652f6db13f4e))
+* **deps-dev:** bump eslint from 9.39.4 to 10.5.0 ([54ddb69](https://github.com/mixxtor/adonisjs-shortlink/commit/54ddb69f398c060bf4db9c44e0a33382c7ba386c))
+* **deps-dev:** bump release-it from 19.2.4 to 20.2.0 ([385107d](https://github.com/mixxtor/adonisjs-shortlink/commit/385107da29d034bd3412d421ba97bd60d7c5f0cc))
+* fix unsupported engine package ([8af1c88](https://github.com/mixxtor/adonisjs-shortlink/commit/8af1c88da6b3121f4d1819338fe43c4db7b699fa))
+* switch to @adonisjs/eslint-config, add japa/sqlite test deps ([5de00d7](https://github.com/mixxtor/adonisjs-shortlink/commit/5de00d712c0c3b9ca0a9de62a3c1e3eaee305438))
+* update changelog links for version 1.1.2 and 1.1.1 ([2ec6c8e](https://github.com/mixxtor/adonisjs-shortlink/commit/2ec6c8ef13c46d045222822bdc028a8eb84669b6))
+* update dependencies ([23751b2](https://github.com/mixxtor/adonisjs-shortlink/commit/23751b2c3f9cdf6f1b3ede77c8e043eab48c8171))
+* update package name from [@mixxtor](https://github.com/mixxtor) to [@ordius](https://github.com/ordius) ([17942ac](https://github.com/mixxtor/adonisjs-shortlink/commit/17942acc4f41eaee8cd72d15c260a8a4f68bab2a))
+* update README and package.json for AdonisJS v7 compatibility; improve stubs documentation ([e47fae8](https://github.com/mixxtor/adonisjs-shortlink/commit/e47fae887b258e9587751e9d49fe888614fea2a4))
+
 ## [1.1.2](https://github.com/mixxtor/adonisjs-shortlink/compare/v1.1.1...v1.1.2) (2025-12-16)
 
 ### 🐛 Bug Fixes
 
-* update dependency versions and improve formatting in ShortlinkService d9d4a10
+- update dependency versions and improve formatting in ShortlinkService d9d4a10
 
 ### 🔧 Maintenance
 
-* update dependencies cac95bc
-* update formatting and improve code clarity across multiple files a823f23
+- update dependencies cac95bc
+- update formatting and improve code clarity across multiple files a823f23
 
 ## [1.1.1](https://github.com/mixxtor/adonisjs-shortlink/compare/v1.1.0...v1.1.1) (2025-10-27)
 
