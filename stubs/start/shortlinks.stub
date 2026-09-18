@@ -1,0 +1,29 @@
+{{{
+  exports({ to: app.startPath(fileName) })
+}}}
+/*
+|--------------------------------------------------------------------------
+| Shortlink redirect routes
+|--------------------------------------------------------------------------
+|
+| Registered automatically as a preload file (see the "#start/shortlinks"
+| entry added to adonisrc.ts by the configure hook) — one GET route per
+| configured domain.
+|
+| Management endpoints (create/update/delete) are your app's job — add
+| them wherever they belong, behind auth.
+|
+*/
+
+import router from '@adonisjs/core/services/router'
+import shortlink from '@ordius/adonisjs-shortlink/services/main'
+
+const ShortlinksController = () => import('#controllers/shortlinks_controller')
+
+for (const domain of shortlink.config.domains) {
+  router
+    .get(`${shortlink.config.prefix}/:slug`, [ShortlinksController, 'redirect'])
+    .as(`shortlinks.redirect.${domain}`)
+    .domain(domain)
+    .middleware([]) // add your own throttling/middleware here
+}

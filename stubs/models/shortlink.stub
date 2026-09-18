@@ -1,44 +1,38 @@
 {{{
   exports({ to: app.modelsPath(fileName) })
 }}}
-import { BaseModel, column, SnakeCaseNamingStrategy } from '@adonisjs/lucid/orm'
 import { DateTime } from 'luxon'
-import shortlinkConfig from '#config/shortlink'
+import { BaseModel, column } from '@adonisjs/lucid/orm'
 
 export default class Shortlink extends BaseModel {
-  static namingStrategy = new SnakeCaseNamingStrategy()
-  public static connection = shortlinkConfig.connection
-  public static table = shortlinkConfig.tableName ?? 'shortlinks'
+  static table = 'shortlinks'
 
   @column({ isPrimary: true })
   declare id: number
 
   @column()
+  declare domain: string
+
+  @column()
   declare slug: string
 
   @column()
-  declare original_url: string
+  declare originalUrl: string
 
   @column()
   declare clicks: number
 
   @column({
-    prepare: (value: Record<string, any> | null) => (value ? JSON.stringify(value) : null),
-    consume: (value: string | null) => (value ? JSON.parse(value) : null),
+    prepare: (value: Record<string, unknown> | null) => JSON.stringify(value),
+    // The pg driver already returns jsonb columns as an object — only
+    // parse when the driver handed back a raw string (sqlite/mysql).
+    consume: (value: unknown) => (typeof value === 'string' ? JSON.parse(value) : value),
   })
-  declare metadata: Record<string, any> | null
+  declare metadata: Record<string, unknown> | null
 
   @column.dateTime({ autoCreate: true })
-  declare created_at: DateTime
+  declare createdAt: DateTime
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare updated_at: DateTime
-
-  /**
-   * Increment the click counter
-   */
-  async incrementClicks(): Promise<void> {
-    this.clicks += 1
-    await this.save()
-  }
+  declare updatedAt: DateTime
 }

@@ -1,0 +1,36 @@
+{{#var entity = generators.createEntity('shortlink')}}
+{{#var singular = true }}
+{{#var controllerName = generators.controllerName(entity.name, singular)}}
+{{#var controllerFileName = generators.controllerFileName(entity.name, singular)}}
+{{{
+  exports({ to: app.httpControllersPath(entity.path, controllerFileName) })
+}}}
+import type { HttpContext } from '@adonisjs/core/http'
+import shortlink from '@ordius/adonisjs-shortlink/services/main'
+
+/**
+ * Redirects short URLs to their original destination.
+ *
+ * Management endpoints (create/update/delete) are intentionally not
+ * generated here — add them to your own app, behind auth.
+ */
+export default class {{ controllerName }} {
+  async redirect({ params, request, response, logger }: HttpContext) {
+    const link = await shortlink.findBySlug(params.slug, {
+      domain: request.hostname() ?? undefined,
+    })
+
+    if (!link) {
+      return response.notFound({ error: 'Shortlink not found' })
+    }
+
+    if (shortlink.config.trackClicks) {
+      // Fire-and-forget: a click-tracking failure must not block the redirect.
+      shortlink.recordClick(link).catch((error: Error) => {
+        logger.error({ err: error }, 'Failed to record shortlink click')
+      })
+    }
+
+    return response.redirect().status(shortlink.config.redirectStatusCode).toPath(link.originalUrl)
+  }
+}

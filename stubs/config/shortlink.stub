@@ -2,7 +2,8 @@
   exports({ to: app.configPath(fileName) })
 }}}
 import env from '#start/env'
-import { defineConfig } from '@mixxtor/adonisjs-shortlink'
+import { defineConfig } from '@ordius/adonisjs-shortlink'
+import type { InferShortlinkModel } from '@ordius/adonisjs-shortlink/types'
 
 const shortlinkConfig = defineConfig({
   /*
@@ -10,112 +11,56 @@ const shortlinkConfig = defineConfig({
   | Shortlink Model
   |--------------------------------------------------------------------------
   |
-  | The Lucid model to use for shortlink operations. This allows you to
-  | use a custom model or extend the package's default model.
+  | Imported lazily so resolving this config doesn't eagerly load the
+  | model (and its imports).
   |
   */
   model: () => import('#models/shortlink'),
 
   /*
   |--------------------------------------------------------------------------
-  | Enable Shortlink Service
+  | Domain
   |--------------------------------------------------------------------------
   |
-  | Whether the shortlink service is enabled. When disabled, the service
-  | will not process any shortlink operations.
-  |
-  */
-  enabled: env.get('SHORTLINK_ENABLED', true),
-
-  /*
-  |--------------------------------------------------------------------------
-  | Short Domain
-  |--------------------------------------------------------------------------
-  |
-  | The domain used for generating short URLs. This should be a short,
-  | memorable domain name dedicated to your shortlink service.
-  |
-  | Example: short.domain.com, s.yourdomain.com, go.yourdomain.com
+  | The primary domain shortlinks are served from. Add more hosts via
+  | "domains" below if you need to serve the same slugs from several
+  | domains.
   |
   */
   domain: env.get('SHORTLINK_DOMAIN'),
 
-  /*
-  |--------------------------------------------------------------------------
-  | Protocol
-  |--------------------------------------------------------------------------
-  |
-  | The protocol to use for generating short URLs.
-  |
-  */
-  protocol: env.get('SHORTLINK_PROTOCOL', 'https'),
+  // domains: ['legacy-short.example.com'],
+  // protocol: 'https',
+  // prefix: 's',
 
   /*
   |--------------------------------------------------------------------------
-  | URL Prefix
+  | Redirect status code
   |--------------------------------------------------------------------------
   |
-  | The URL prefix for shortlinks. This will be appended to your domain
-  | to create the full shortlink URL structure.
-  |
-  | Example: With prefix 's', URLs will be: domain.com/s/slug
+  | 302 by default: 301 is cached forever by browsers, so repointing a
+  | slug to a new URL would keep redirecting previous visitors to the old
+  | destination.
   |
   */
-  prefix: env.get('SHORTLINK_PREFIX'),
+  // redirectStatusCode: 302,
+  // trackClicks: true,
 
-  /*
-  |--------------------------------------------------------------------------
-  | Slug Length
-  |--------------------------------------------------------------------------
-  |
-  | The default length of generated slugs. Longer slugs provide more
-  | unique combinations but result in longer URLs.
-  |
-  */
-  slugLength: env.get('SHORTLINK_SLUG_LENGTH', 8),
+  // slug: {
+  //   length: 8,
+  //   maxAttempts: 5,
+  //   reserved: ['api', 'admin'],
+  // },
 
-  /*
-  |--------------------------------------------------------------------------
-  | Enable Click Tracking
-  |--------------------------------------------------------------------------
-  |
-  | Whether to track clicks on shortlinks. When enabled, each click will
-  | increment the click counter in the database.
-  |
-  */
-  trackClicks: env.get('SHORTLINK_TRACK_CLICKS', true),
-
-  /*
-  |--------------------------------------------------------------------------
-  | Redirect Status Code
-  |--------------------------------------------------------------------------
-  |
-  | The HTTP status code to use for redirects.
-  | 301 = Permanent redirect (cached by browsers)
-  | 302 = Temporary redirect (not cached)
-  |
-  */
-  redirectStatusCode: env.get('SHORTLINK_REDIRECT_STATUS_CODE', 301),
-
-  /*
-  |--------------------------------------------------------------------------
-  | Database Connection
-  |--------------------------------------------------------------------------
-  |
-  | The database connection to use for shortlinks
-  |
-  */
-  connection: env.get('SHORTLINK_DB_CONNECTION', env.get('DB_CONNECTION', 'pg')),
-
-  /*
-  |--------------------------------------------------------------------------
-  | Table Name
-  |--------------------------------------------------------------------------
-  |
-  | The database table name for shortlinks
-  |
-  */
-  tableName: env.get('SHORTLINK_TABLE_NAME', 'shortlinks'),
+  // allowedProtocols: ['http:', 'https:'],
 })
 
 export default shortlinkConfig
+
+/**
+ * Types the "shortlink" service (and container binding) with the model
+ * configured above.
+ */
+declare module '@ordius/adonisjs-shortlink/types' {
+  interface ShortlinkModels extends InferShortlinkModel<typeof shortlinkConfig> {}
+}
