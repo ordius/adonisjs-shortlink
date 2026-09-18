@@ -68,7 +68,7 @@
     "@japa/runner": "^4.4.0",
     "@release-it/conventional-changelog": "^11.0.1",
     "@swc/core": "^1.15.43",
-    "@types/better-sqlite3": "^7.6.13",
+    "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^26.1.0",
     "better-sqlite3": "^12.4.1",
     "c8": "^11.0.0",
