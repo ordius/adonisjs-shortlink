@@ -9,17 +9,16 @@ import type { QueryClientContract } from '@adonisjs/lucid/types/database'
 import type { LucidModel, LucidRow, ModelAttributes } from '@adonisjs/lucid/types/model'
 
 /**
- * Minimum shape a shortlink row must have. Apps are free to add extra
- * columns (group, createdBy, referer, ...) on top of this contract; they
- * stay reachable through `attributes` on create/update.
+ * Minimum shape a shortlink row must have. The package depends on TABLE
+ * COLUMNS (`domain`, `slug`, `original_url`, `clicks`, optionally
+ * `metadata`), not on any particular attribute naming — so a model using
+ * `SnakeCaseNamingStrategy` (`declare original_url: string`) type-checks
+ * here just as well as the default camelCase one. Apps are free to add
+ * extra columns (group, createdBy, referer, ...) on top of this contract;
+ * they stay reachable through `attributes` on create/update.
  */
 export interface ShortlinkRow extends LucidRow {
   id: number | string
-  domain: string
-  slug: string
-  originalUrl: string
-  clicks: number
-  metadata: Record<string, unknown> | null
 }
 
 export type ShortlinkModel = LucidModel & { new (): ShortlinkRow }
@@ -92,6 +91,20 @@ export interface ResolvedSlugConfig {
   maxAttempts: number
 }
 
+/**
+ * The model's attribute name for each table column the package depends
+ * on, resolved once at config-resolve time via
+ * `model.$keys.columnsToAttributes`. `metadata` is only present when the
+ * model maps that (optional) column.
+ */
+export interface ResolvedAttributeMap {
+  domain: string
+  slug: string
+  originalUrl: string
+  clicks: string
+  metadata?: string
+}
+
 export interface ShortlinkConfig<Model extends ShortlinkModel = ShortlinkModel> {
   /**
    * The Lucid model to use for shortlink operations. Imported lazily so
@@ -156,6 +169,7 @@ export interface ResolvedShortlinkConfig<Model extends ShortlinkModel = Shortlin
   trackClicks: boolean
   slug: ResolvedSlugConfig
   allowedProtocols: string[]
+  attributes: ResolvedAttributeMap
 }
 
 export type QueryOptions = {
@@ -165,6 +179,17 @@ export type QueryOptions = {
    */
   client?: QueryClientContract
 }
+
+/**
+ * Attribute keys `attributes` can never override at the type level. Named
+ * after the default (camelCase) contract — a model with a different
+ * attribute naming strategy (see `ResolvedAttributeMap`) is still
+ * protected at runtime by `ShortlinkService`'s `sanitizeAttributes`, which
+ * strips the model's actually-resolved column attributes and primary key;
+ * this Omit is a best-effort compile-time guard for the common case, since
+ * TypeScript can't reflect on a model's runtime naming strategy.
+ */
+type ProtectedAttributeKeys = 'id' | 'domain' | 'slug' | 'originalUrl' | 'clicks'
 
 export type CreateOptions<Model extends ShortlinkModel = ShortlinkModel> = QueryOptions & {
   /**
@@ -186,7 +211,7 @@ export type CreateOptions<Model extends ShortlinkModel = ShortlinkModel> = Query
    * override id/slug/domain/originalUrl/clicks — those are always set
    * from the explicit arguments above.
    */
-  attributes?: Partial<ModelAttributes<InstanceType<Model>>>
+  attributes?: Partial<Omit<ModelAttributes<InstanceType<Model>>, ProtectedAttributeKeys>>
 }
 
 export type UpdateChanges<Model extends ShortlinkModel = ShortlinkModel> = {
@@ -197,5 +222,5 @@ export type UpdateChanges<Model extends ShortlinkModel = ShortlinkModel> = {
   /**
    * Same override protection as `CreateOptions['attributes']`.
    */
-  attributes?: Partial<ModelAttributes<InstanceType<Model>>>
+  attributes?: Partial<Omit<ModelAttributes<InstanceType<Model>>, ProtectedAttributeKeys>>
 }

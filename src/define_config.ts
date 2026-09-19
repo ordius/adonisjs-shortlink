@@ -6,10 +6,24 @@ import { configProvider } from '@adonisjs/core'
 import { RuntimeException } from '@adonisjs/core/exceptions'
 import type { ConfigProvider } from '@adonisjs/core/types'
 
-import type { ResolvedShortlinkConfig, ShortlinkConfig, ShortlinkModel } from './types.js'
+import type {
+  ResolvedAttributeMap,
+  ResolvedShortlinkConfig,
+  ShortlinkConfig,
+  ShortlinkModel,
+} from './types.js'
 
 const DEFAULT_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
 const DEFAULT_SLUG_PATTERN = /^[A-Za-z0-9_-]{1,255}$/
+
+/**
+ * Table columns the package depends on. Their attribute names are
+ * resolved from the model (see `resolveAttributes`) instead of being
+ * hardcoded, so the app's own naming strategy (camelCase, snake_case, ...)
+ * is never fought.
+ */
+const REQUIRED_COLUMNS = ['domain', 'slug', 'original_url', 'clicks'] as const
+const OPTIONAL_COLUMNS = ['metadata'] as const
 
 /**
  * Normalizes a bare hostname or a full URL down to its hostname, so
@@ -23,13 +37,63 @@ function normalizeDomain(input: string): string {
     throw new RuntimeException('Invalid "config/shortlink.ts" file. "domain" cannot be empty')
   }
 
+  let hostname: string
+
   try {
     const url = trimmed.includes('://') ? new URL(trimmed) : new URL(`https://${trimmed}`)
-    return url.hostname
+    hostname = url.hostname
   } catch {
     throw new RuntimeException(
       `Invalid "config/shortlink.ts" file. "domain" value "${input}" is not a valid hostname`
     )
+  }
+
+  // A URL like `file:///tmp` parses without throwing but leaves an empty
+  // hostname — reject it the same way a genuinely unparsable value is.
+  if (!hostname) {
+    throw new RuntimeException(
+      `Invalid "config/shortlink.ts" file. "domain" value "${input}" is not a valid hostname`
+    )
+  }
+
+  return hostname
+}
+
+/**
+ * Resolves each table column the package depends on to the model's
+ * attribute name for it, so the service can read/write through the app's
+ * own naming strategy instead of a hardcoded camelCase contract.
+ */
+function resolveAttributes(model: ShortlinkModel): ResolvedAttributeMap {
+  model.boot()
+  const columnsToAttributes = model.$keys.columnsToAttributes
+
+  const required: Record<string, string> = {}
+  for (const column of REQUIRED_COLUMNS) {
+    const attribute = columnsToAttributes.get(column)
+    if (!attribute) {
+      throw new RuntimeException(
+        `Invalid "config/shortlink.ts" file. Model "${model.name}" has no column mapped to "${column}", which "@ordius/adonisjs-shortlink" requires`
+      )
+    }
+    required[column] = attribute
+  }
+
+  const optional: Record<string, string> = {}
+  for (const column of OPTIONAL_COLUMNS) {
+    const attribute = columnsToAttributes.get(column)
+    if (attribute) optional[column] = attribute
+  }
+
+  return {
+    domain: required.domain,
+    slug: required.slug,
+    originalUrl: required.original_url,
+    clicks: required.clicks,
+    // Only set the key when the model actually maps the column — an
+    // `undefined` value would still make it own-enumerable, unlike a
+    // genuinely absent key (observable via `Object.keys`/`deepEqual`).
+    ...(optional.metadata ? { metadata: optional.metadata } : {}),
   }
 }
 
@@ -88,8 +152,17 @@ export function defineConfig<Model extends ShortlinkModel>(
       )
     }
 
+    const pattern = slugConfig.pattern ?? DEFAULT_SLUG_PATTERN
+    if (pattern.global || pattern.sticky) {
+      throw new RuntimeException(
+        'Invalid "config/shortlink.ts" file. "slug.pattern" must not use the "g" or "y" flag — ' +
+          'it is reused across ".test()" calls and those flags carry "lastIndex" between them'
+      )
+    }
+
     return {
       model,
+      attributes: resolveAttributes(model),
       domain: primaryDomain,
       domains,
       protocol: config.protocol ?? 'https',
@@ -99,7 +172,7 @@ export function defineConfig<Model extends ShortlinkModel>(
       slug: {
         length,
         alphabet,
-        pattern: slugConfig.pattern ?? DEFAULT_SLUG_PATTERN,
+        pattern,
         reserved: new Set((slugConfig.reserved ?? []).map((value) => value.toLowerCase())),
         maxAttempts: slugConfig.maxAttempts ?? 5,
       },

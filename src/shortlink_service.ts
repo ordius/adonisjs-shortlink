@@ -66,14 +66,34 @@ export default class ShortlinkService<Model extends ShortlinkModel = ResolvedMod
   }
 
   /**
-   * Strips id/slug/domain/originalUrl/clicks from an `attributes` payload
-   * so callers can never smuggle a core column through it.
+   * Strips the model's primary key and its `domain`/`slug`/`originalUrl`/
+   * `clicks` (+ `metadata`, if mapped) attributes from an `attributes`
+   * payload, using the attribute names actually resolved for this model
+   * (see `ResolvedAttributeMap`) — so callers can never smuggle a core
+   * column through it, regardless of the app's naming strategy.
    */
   private sanitizeAttributes(
-    attributes?: Partial<ModelAttributes<InstanceType<Model>>>
+    // Accepts the public (Omit-narrowed) `attributes` type from
+    // `CreateOptions`/`UpdateChanges` as well as the unrestricted one —
+    // this is an internal helper, so it only needs to agree with itself.
+    attributes?: Record<string, unknown>
   ): Record<string, unknown> {
     if (!attributes) return {}
-    const { id, domain, slug, originalUrl, clicks, ...rest } = attributes as Record<string, unknown>
+
+    const attrs = this.config.attributes
+    const protectedKeys = new Set<string>([
+      this.config.model.primaryKey,
+      attrs.domain,
+      attrs.slug,
+      attrs.originalUrl,
+      attrs.clicks,
+    ])
+    if (attrs.metadata) protectedKeys.add(attrs.metadata)
+
+    const rest: Record<string, unknown> = {}
+    for (const [key, value] of Object.entries(attributes)) {
+      if (!protectedKeys.has(key)) rest[key] = value
+    }
     return rest
   }
 
@@ -203,8 +223,9 @@ export default class ShortlinkService<Model extends ShortlinkModel = ResolvedMod
     const domain = options.domain ? this.normalizeHost(options.domain) : this.config.domain
     if (!this.servesDomain(domain)) return null
 
+    const attrs = this.config.attributes
     return this.config.model.findBy(
-      { domain, slug },
+      { [attrs.domain]: domain, [attrs.slug]: slug },
       options.client ? { client: options.client } : undefined
     ) as Promise<InstanceType<Model> | null>
   }
@@ -216,8 +237,9 @@ export default class ShortlinkService<Model extends ShortlinkModel = ResolvedMod
     const domain = options.domain ? this.normalizeHost(options.domain) : this.config.domain
     if (!this.servesDomain(domain)) return null
 
+    const attrs = this.config.attributes
     return this.config.model.findBy(
-      { domain, originalUrl: originalUrl.trim() },
+      { [attrs.domain]: domain, [attrs.originalUrl]: originalUrl.trim() },
       options.client ? { client: options.client } : undefined
     ) as Promise<InstanceType<Model> | null>
   }
@@ -238,28 +260,46 @@ export default class ShortlinkService<Model extends ShortlinkModel = ResolvedMod
       throw new E_UNKNOWN_DOMAIN([options.domain ?? domain])
     }
 
+    const attrs = this.config.attributes
     const clientOptions = options.client ? { client: options.client } : undefined
-    const baseAttributes = {
+    const baseAttributes: Record<string, unknown> = {
       ...this.sanitizeAttributes(options.attributes),
-      domain,
-      originalUrl: url,
-      clicks: 0,
-      metadata: options.metadata ?? null,
+      [attrs.domain]: domain,
+      [attrs.originalUrl]: url,
+      [attrs.clicks]: 0,
     }
+    // Only written when the model actually maps a metadata column — there
+    // is nowhere to put it otherwise.
+    if (attrs.metadata) baseAttributes[attrs.metadata] = options.metadata ?? null
+
+    const slugExists = (slug: string) =>
+      this.config.model.findBy({ [attrs.domain]: domain, [attrs.slug]: slug }, clientOptions)
 
     if (options.slug) {
       this.assertValidSlug(options.slug)
 
-      const existing = await this.config.model.findBy({ domain, slug: options.slug }, clientOptions)
+      const existing = await slugExists(options.slug)
       if (existing) throw new E_SLUG_TAKEN([options.slug])
 
       try {
         return (await this.config.model.create(
-          this.asModelAttributes({ ...baseAttributes, slug: options.slug }),
+          this.asModelAttributes({ ...baseAttributes, [attrs.slug]: options.slug }),
           clientOptions
         )) as InstanceType<Model>
       } catch (error) {
-        if (isUniqueViolation(error)) throw new E_SLUG_TAKEN([options.slug])
+        if (!isUniqueViolation(error)) throw error
+
+        // A failed INSERT aborts a caller-provided postgres transaction, so a
+        // re-check inside it would fail too — the pre-insert check above is
+        // the only collision detection available in that case, and the
+        // original DB error (which may be the app's own unique column, not
+        // a slug collision) is rethrown as-is.
+        if (options.client) throw error
+
+        // No caller transaction: safe to re-check whether the violation was
+        // actually this slug, or one of the app's own unique columns
+        // (reachable via `attributes`) — only the former is E_SLUG_TAKEN.
+        if (await slugExists(options.slug)) throw new E_SLUG_TAKEN([options.slug])
         throw error
       }
     }
@@ -268,19 +308,22 @@ export default class ShortlinkService<Model extends ShortlinkModel = ResolvedMod
       const slug = this.generateSlug()
 
       // A collision caught here costs nothing, so it is retried in any case.
-      const existing = await this.config.model.findBy({ domain, slug }, clientOptions)
+      const existing = await slugExists(slug)
       if (existing) continue
 
       try {
         return (await this.config.model.create(
-          this.asModelAttributes({ ...baseAttributes, slug }),
+          this.asModelAttributes({ ...baseAttributes, [attrs.slug]: slug }),
           clientOptions
         )) as InstanceType<Model>
       } catch (error) {
         if (!isUniqueViolation(error)) throw error
-        // A failed INSERT aborts a caller-provided postgres transaction, so the
-        // race can only be retried when the service owns the query.
-        if (options.client) throw new E_SLUG_GENERATION_FAILED(undefined, { cause: error })
+        // Same reasoning as the custom-slug branch above: a caller
+        // transaction can't be safely re-checked, so the original error
+        // propagates instead of being wrapped in E_SLUG_GENERATION_FAILED.
+        if (options.client) throw error
+        if (await slugExists(slug)) continue
+        throw error
       }
     }
 
@@ -309,28 +352,33 @@ export default class ShortlinkService<Model extends ShortlinkModel = ResolvedMod
     shortlink: InstanceType<Model>,
     changes: UpdateChanges<Model>
   ): Promise<InstanceType<Model>> {
+    const attrs = this.config.attributes
+    const currentSlug = shortlink.$getAttribute(attrs.slug)
+
     if (changes.originalUrl !== undefined) {
       const url = changes.originalUrl.trim()
       this.assertValidUrl(url)
-      shortlink.originalUrl = url
+      shortlink.$setAttribute(attrs.originalUrl, url)
     }
 
-    if (changes.slug !== undefined && changes.slug !== shortlink.slug) {
+    let slugChanged = false
+    if (changes.slug !== undefined && changes.slug !== currentSlug) {
       this.assertValidSlug(changes.slug)
 
       const existing = await this.config.model.findBy(
-        { domain: shortlink.domain, slug: changes.slug },
+        { [attrs.domain]: shortlink.$getAttribute(attrs.domain), [attrs.slug]: changes.slug },
         shortlink.$trx ? { client: shortlink.$trx } : undefined
       )
       if (existing && existing.$primaryKeyValue !== shortlink.$primaryKeyValue) {
         throw new E_SLUG_TAKEN([changes.slug])
       }
 
-      shortlink.slug = changes.slug
+      shortlink.$setAttribute(attrs.slug, changes.slug)
+      slugChanged = true
     }
 
-    if (changes.metadata !== undefined) {
-      shortlink.metadata = changes.metadata
+    if (changes.metadata !== undefined && attrs.metadata) {
+      shortlink.$setAttribute(attrs.metadata, changes.metadata)
     }
 
     const attributes = this.sanitizeAttributes(changes.attributes)
@@ -341,9 +389,21 @@ export default class ShortlinkService<Model extends ShortlinkModel = ResolvedMod
     try {
       await shortlink.save()
     } catch (error) {
-      if (changes.slug !== undefined && isUniqueViolation(error)) {
-        throw new E_SLUG_TAKEN([changes.slug])
-      }
+      if (!slugChanged || !isUniqueViolation(error)) throw error
+
+      // A caller transaction can't be safely re-checked (a failed UPDATE
+      // aborts it), so the original DB error propagates as-is.
+      if (shortlink.$trx) throw error
+
+      // No caller transaction: confirm the violation was actually this
+      // slug before reporting it as one — an app's own unique column
+      // (reachable via `attributes`) must not be misreported as
+      // E_SLUG_TAKEN.
+      const existing = await this.config.model.findBy({
+        [attrs.domain]: shortlink.$getAttribute(attrs.domain),
+        [attrs.slug]: changes.slug,
+      })
+      if (existing) throw new E_SLUG_TAKEN([changes.slug!])
       throw error
     }
 
@@ -363,9 +423,18 @@ export default class ShortlinkService<Model extends ShortlinkModel = ResolvedMod
    * never fires model hooks, so concurrent redirects can't lose counts
    * the way `clicks += 1; save()` would.
    */
-  async recordClick(shortlink: InstanceType<Model> | ShortlinkRow['id'], count = 1): Promise<void> {
+  async recordClick(
+    shortlink: InstanceType<Model> | ShortlinkRow['id'],
+    count = 1,
+    options: QueryOptions = {}
+  ): Promise<void> {
     const model = this.config.model
     const id = typeof shortlink === 'object' ? shortlink.$primaryKeyValue : shortlink
-    await model.query().where(model.primaryKey, id!).increment('clicks', count)
+    const client = options.client ?? (typeof shortlink === 'object' ? shortlink.$trx : undefined)
+
+    await model
+      .query(client ? { client } : undefined)
+      .where(model.primaryKey, id!)
+      .increment(this.config.attributes.clicks, count)
   }
 }

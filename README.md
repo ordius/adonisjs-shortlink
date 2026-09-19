@@ -83,8 +83,16 @@ generic base type.
 
 ## Model contract
 
-Your model owns its table and connection (plain Lucid, no config coupling) and must expose
-these camelCase attributes — the default naming strategy maps them to snake_case columns:
+Your model owns its table, connection **and attribute naming** (plain Lucid, no config
+coupling). The package depends on **table columns**, not on any particular attribute naming
+convention: it reads each column's attribute name off your model once, at config-resolve time
+(`model.$keys.columnsToAttributes`), and uses that everywhere internally. That means an app
+using `SnakeCaseNamingStrategy` with `declare original_url: string` works exactly the same as
+the default camelCase model below — you never have to rename your attributes to match this
+package.
+
+Required columns: `domain`, `slug`, `original_url`, `clicks`. Optional: `metadata` — omit it
+and the service simply never writes it.
 
 ```ts
 import { DateTime } from 'luxon'
@@ -109,7 +117,8 @@ export default class Shortlink extends BaseModel {
   declare clicks: number
 
   @column({
-    prepare: (value: Record<string, unknown> | null) => JSON.stringify(value),
+    prepare: (value: Record<string, unknown> | null) =>
+      value === null || value === undefined ? null : JSON.stringify(value),
     // pg's jsonb driver already returns an object — only parse a raw string
     consume: (value: unknown) => (typeof value === 'string' ? JSON.parse(value) : value),
   })
@@ -123,9 +132,40 @@ export default class Shortlink extends BaseModel {
 }
 ```
 
+A model that already uses snake_case attributes works unchanged — no camelCase renaming, no
+extra config:
+
+```ts
+import { BaseModel, SnakeCaseNamingStrategy, column } from '@adonisjs/lucid/orm'
+
+export default class Shortlink extends BaseModel {
+  static table = 'shortlinks'
+  static namingStrategy = new SnakeCaseNamingStrategy()
+
+  @column({ isPrimary: true })
+  declare id: number
+
+  @column()
+  declare domain: string
+
+  @column()
+  declare slug: string
+
+  @column()
+  declare original_url: string
+
+  @column()
+  declare clicks: number
+}
+```
+
+Either way, the public `shortlink` service API keeps the same (camelCase) vocabulary —
+`create(originalUrl, …)`, `update(row, { originalUrl })`, `findByUrl(...)` — regardless of how
+your model names its attributes; only the underlying column resolution adapts.
+
 Add whatever extra columns you need (`referer`, `createdBy`, `group`, ...) — they're reachable
-through `attributes` on `create`/`update`. The migration enforces uniqueness on
-`(domain, slug)`, not `slug` alone.
+through `attributes` on `create`/`update`, under whatever attribute name your model gives them.
+The migration enforces uniqueness on `(domain, slug)`, not `slug` alone.
 
 ## Service API
 
@@ -234,9 +274,12 @@ in your own app, behind auth.
 
 ### Multi-domain
 
-Configure `domains`, and the generated routes file registers one `GET ${prefix}/:slug` per
-domain via `.domain()`. Reads/writes scope to a domain through the `domain` option (defaulting
-to the primary one).
+`domain` (the primary host) and `domains` (extra hosts served alongside it) work as shown in
+[Config reference](#config-reference). `node ace add`/`configure` only ever defines the
+`SHORTLINK_DOMAIN` env var for the primary `domain` — extra hosts aren't env-driven, add them
+directly to the `domains` array in `config/shortlink.ts`. The generated routes file registers
+one `GET ${prefix}/:slug` per configured domain via `.domain()`. Reads/writes scope to a domain
+through the `domain` option (defaulting to the primary one).
 
 ## Errors
 

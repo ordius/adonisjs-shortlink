@@ -22,8 +22,8 @@ const ShortlinksController = () => import('#controllers/shortlinks_controller')
 
 for (const domain of shortlink.config.domains) {
   router
-    .get(`${shortlink.config.prefix}/:slug`, [ShortlinksController, 'redirect'])
-    .as(`shortlinks.redirect.${domain}`)
+    .get(shortlink.config.prefix + '/:slug', [ShortlinksController, 'redirect'])
+    .as('shortlinks.redirect.' + domain)
     .domain(domain)
     .middleware([]) // add your own throttling/middleware here
 }

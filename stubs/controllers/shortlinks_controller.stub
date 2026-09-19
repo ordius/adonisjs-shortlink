@@ -1,7 +1,6 @@
 {{#var entity = generators.createEntity('shortlink')}}
-{{#var singular = true }}
-{{#var controllerName = generators.controllerName(entity.name, singular)}}
-{{#var controllerFileName = generators.controllerFileName(entity.name, singular)}}
+{{#var controllerName = generators.controllerName(entity.name)}}
+{{#var controllerFileName = generators.controllerFileName(entity.name)}}
 {{{
   exports({ to: app.httpControllersPath(entity.path, controllerFileName) })
 }}}
