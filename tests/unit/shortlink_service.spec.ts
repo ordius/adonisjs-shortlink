@@ -15,6 +15,13 @@ function makeConfig(overrides: Partial<ResolvedShortlinkConfig> = {}): ResolvedS
     redirectStatusCode: 302,
     trackClicks: true,
     allowedProtocols: ['http:', 'https:'],
+    attributes: {
+      domain: 'domain',
+      slug: 'slug',
+      originalUrl: 'originalUrl',
+      clicks: 'clicks',
+      metadata: 'metadata',
+    },
     slug: {
       length: 8,
       alphabet: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789',
