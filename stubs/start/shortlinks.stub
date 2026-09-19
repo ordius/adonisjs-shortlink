@@ -22,9 +22,6 @@ const ShortlinksController = () => import('#controllers/shortlinks_controller')
 
 for (const domain of shortlink.config.domains) {
   router
-    // Backtick template strings are avoided on purpose: this file is
-    // itself a template (tempura), rendered inside a JS template literal —
-    // a literal backtick or dollar-brace pair in the output breaks that.
     .get(shortlink.config.prefix + '/:slug', [ShortlinksController, 'redirect'])
     .as('shortlinks.redirect.' + domain)
     .domain(domain)
