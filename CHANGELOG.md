@@ -4,6 +4,36 @@ All notable changes to this project will be documented in this file.
 
 
 
+## [2.2.0](https://github.com/mixxtor/adonisjs-shortlink/compare/v2.0.0...v2.2.0) (2026-09-19)
+
+### ✨ Features
+
+* resolve model attribute names from table columns instead of hardcoding camelCase ([8b32d16](https://github.com/mixxtor/adonisjs-shortlink/commit/8b32d16f2da0aca20971be7898d5a8674168ad1e))
+
+### 🐛 Bug Fixes
+
+* fix stub generation bugs and add coverage for published stubs ([58aa5ec](https://github.com/mixxtor/adonisjs-shortlink/commit/58aa5ecdd9d3f4df23ae6505df5c118ab9d3c0d3))
+* write metadata as SQL NULL instead of the string "null" ([56e3988](https://github.com/mixxtor/adonisjs-shortlink/commit/56e3988ad987834c6003911982cb5df5cfddb33f))
+
+### 🔧 Maintenance
+
+* keep stub-internal notes out of the generated routes file ([7ed8faa](https://github.com/mixxtor/adonisjs-shortlink/commit/7ed8faa15d6be7ae383da197d829accbd5f1fdfb))
+
+## [2.1.0](https://github.com/mixxtor/adonisjs-shortlink/compare/v2.0.0...v2.1.0) (2026-09-19)
+
+### ✨ Features
+
+* resolve model attribute names from table columns instead of hardcoding camelCase ([8b32d16](https://github.com/mixxtor/adonisjs-shortlink/commit/8b32d16f2da0aca20971be7898d5a8674168ad1e))
+
+### 🐛 Bug Fixes
+
+* fix stub generation bugs and add coverage for published stubs ([58aa5ec](https://github.com/mixxtor/adonisjs-shortlink/commit/58aa5ecdd9d3f4df23ae6505df5c118ab9d3c0d3))
+* write metadata as SQL NULL instead of the string "null" ([56e3988](https://github.com/mixxtor/adonisjs-shortlink/commit/56e3988ad987834c6003911982cb5df5cfddb33f))
+
+### 🔧 Maintenance
+
+* keep stub-internal notes out of the generated routes file ([7ed8faa](https://github.com/mixxtor/adonisjs-shortlink/commit/7ed8faa15d6be7ae383da197d829accbd5f1fdfb))
+
 ## [2.0.0](https://github.com/mixxtor/adonisjs-shortlink/compare/v1.1.2...v2.0.0) (2026-09-18)
 
 ### ⚠ BREAKING CHANGES
