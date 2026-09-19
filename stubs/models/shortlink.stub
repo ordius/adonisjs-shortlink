@@ -23,7 +23,8 @@ export default class Shortlink extends BaseModel {
   declare clicks: number
 
   @column({
-    prepare: (value: Record<string, unknown> | null) => JSON.stringify(value),
+    prepare: (value: Record<string, unknown> | null) =>
+      value === null || value === undefined ? null : JSON.stringify(value),
     // The pg driver already returns jsonb columns as an object — only
     // parse when the driver handed back a raw string (sqlite/mysql).
     consume: (value: unknown) => (typeof value === 'string' ? JSON.parse(value) : value),
