@@ -76,7 +76,7 @@
     "conventional-commits-filter": "^6.0.1",
     "conventional-commits-parser": "^7.1.2",
     "copyfiles": "^2.4.1",
-    "del-cli": "^7.0.0",
+    "del-cli": "^8.0.1",
     "eslint": "^10.10.0",
     "luxon": "^3.7.2",
     "prettier": "^3.9.8",
